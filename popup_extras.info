@@ -1,0 +1,9 @@
+name = Popup Message Extras
+description = Adds some extra controls for Popup Message
+core = 7.x
+package = "User interface"
+version = "7.x-1.0"
+
+dependencies[] = popup_message
+
+configure = admin/config/user-interface/popup_message

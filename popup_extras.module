@@ -1,0 +1,101 @@
+<?php
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function popup_extras_form_popup_message_settings_alter(&$form, &$form_state, $form_id) {
+  $form['popup_message_enable']['#description'] = t('This setting will be ignored when Popup Extras is enabled.');
+
+  $form['popup_message_fieldset']['#weight'] = '100';
+  $form['actions']['#weight'] = '101';
+
+  $from['popup_message_extras'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Extra settings'),
+    '#collapsed' => FALSE,
+    '#collapsible' => TRUE,
+    '#weight' => -10,
+  );
+
+  $form['popup_message_extras']['popup_extras'] = array(
+    '#type' => 'radios',
+    '#title' => t('Enable Popup Extras'),
+    '#default_value' => variable_get('popup_extras', 0),
+    '#description' => t("Enables Popup Message to be triggered on the number set below. Turning this on, will ignore the above setting."),
+    '#options' => array(
+      1 => t('Enabled'),
+      0 => t('Disabled'),
+    ),
+  );
+
+  $count = variable_get('popup_extras_current_count', 0);
+
+  $form['popup_message_extras']['popup_extras_count'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Count'),
+    '#size' => 20,
+    '#maxlength' => 255,
+    '#default_value' => variable_get('popup_extras_count', '100'),
+    '#description' => t("<p>The number of page loads before triggering the popup. User 1 is ignored.</p><p>Current count: @count.</p>", array('@count' => $count)),
+//    '#required' => TRUE,
+    '#states'       => [
+      'visible'  => [
+        ':input[name="popup_extras"]' => [
+          'value' => 1,
+        ],
+      ],
+      'required' => [
+        ':input[name="popup_extras"]' => [
+          'value' => 1,
+        ],
+      ],
+    ],
+  );
+
+  return system_settings_form($form);
+}
+
+/**
+ * Implements hook_init().
+ */
+function popup_extras_init() {
+  $popups = variable_get('popup_extras', 0);
+  if ($popups) {
+    global $user;
+
+    if ($user->uid != 1) {
+
+      $count = variable_get('popup_extras_current_count', 0) + 1;
+      $total = variable_get('popup_extras_count', 1);
+
+      if ($count >= $total) {
+        $message_title = filter_xss(variable_get('popup_message_title', ''));
+        $message_body_variable = variable_get('popup_message_body');
+        $message_body = check_markup(
+          $message_body_variable['value'],
+          ($message_body_variable['format'] ? $message_body_variable['format'] : variable_get('filter_default_format', NULL)),
+          FALSE
+        );
+
+        $popup_message_parameters = array(
+          'title' => $message_title,
+          'body' => $message_body,
+          'check_cookie' => variable_get('popup_message_check_cookie', 1),
+          'width' => variable_get('popup_message_width', 300),
+          'height' => variable_get('popup_message_height', 300),
+          'delay' => variable_get('popup_message_delay', 0),
+        );
+        // Allow other modules to modiffy message parameters.
+        drupal_alter('popup_message_perameters', $popup_message_parameters);
+        if ($message_title && $message_body) {
+          popup_message_show_message($popup_message_parameters);
+        }
+        variable_set('popup_extras_current_count', 0);
+      }
+      else {
+        variable_set('popup_extras_current_count', $count);
+      }
+    }
+  }
+
+
+}

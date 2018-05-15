@@ -1,0 +1,9 @@
+<?php
+/**
+ * Implements hook_uninstall().
+ */
+function popup_extras_uninstall() {
+  variable_del('popup_extras');
+  variable_del('popup_extras_count');
+  variable_del('popup_extras_current_count');
+}
